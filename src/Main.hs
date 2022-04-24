@@ -9,6 +9,7 @@ import System.IO
   ( Handle,
     IOMode (ReadMode, WriteMode),
     hClose,
+    hFlush,
     hGetLine,
     hIsEOF,
     hPrint,
@@ -50,6 +51,7 @@ main = do
   hSetEncoding inh utf8
   _ <- hGetLine inh -- Skip first line
   mainLoop inh ouh
+  hFlush ouh
   hClose inh
 
 createCompany :: [T.Text] -> Company
