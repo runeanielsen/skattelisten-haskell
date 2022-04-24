@@ -80,6 +80,6 @@ mainLoop inh ouh = do
     then return ()
     else do
       inpStr <- hGetLine inh
-      let company_json = encode . createCompany . splitCSV . T.pack $ inpStr
-      hPutStrLn ouh $ B.unpack company_json
+      let company_json = B.unpack . encode . createCompany . splitCSV . T.pack $ inpStr
+      hPutStrLn ouh company_json
       mainLoop inh ouh
