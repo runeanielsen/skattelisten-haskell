@@ -1,15 +1,10 @@
 module Main where
 
-import qualified Basement.Types.CharUTF8 as B
-import Control.Monad (mzero)
 import Data.Aeson (ToJSON (toJSON), encode, object, (.=))
 import qualified Data.ByteString.Lazy.Char8 as B
 import Data.Char (toUpper)
 import qualified Data.Text as T
 import Data.Text.Encoding (decodeUtf8, encodeUtf8)
-import RIO.ByteString.Lazy (unpack)
-import qualified RIO.ByteString.Lazy as B.CharUTF8
-import qualified RIO.ByteString.Lazy as Data.Aeson
 import System.IO
   ( Handle,
     IOMode (ReadMode, WriteMode),
