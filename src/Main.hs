@@ -5,6 +5,7 @@ import qualified Data.ByteString.Lazy.Char8 as B
 import Data.Char (toUpper)
 import qualified Data.Text as T
 import Data.Text.Encoding (decodeUtf8, encodeUtf8)
+import System.Environment (getArgs)
 import System.IO
   ( Handle,
     IOMode (ReadMode, WriteMode),
@@ -18,6 +19,12 @@ import System.IO
     openFile,
     utf8,
   )
+
+data CmdArgs = CmdArgs
+  { input_file :: String,
+    output_file :: String
+  }
+  deriving (Show)
 
 data Company = Company
   { csv :: T.Text,
@@ -44,18 +51,8 @@ instance ToJSON Company where
         T.pack "corporate_tax" .= corporate_tax
       ]
 
-main :: IO ()
-main = do
-  inh <- openFile "" ReadMode
-  ouh <- openFile "" WriteMode
-  hSetEncoding inh utf8
-  _ <- hGetLine inh -- Skip first line
-  mainLoop inh ouh
-  hFlush ouh
-  hClose inh
-
-createCompany :: [T.Text] -> Company
-createCompany line =
+createCompanyParsedCsv :: [T.Text] -> Company
+createCompanyParsedCsv line =
   Company
     (head line)
     (line !! 1)
@@ -66,17 +63,37 @@ createCompany line =
     (line !! 9)
     (line !! 10)
 
-splitCSV :: T.Text -> [T.Text]
-splitCSV =
+splitCsv :: T.Text -> [T.Text]
+splitCsv =
   T.splitOn $ T.pack ","
 
-mainLoop :: Handle -> Handle -> IO ()
-mainLoop inh ouh = do
+csvLineToCompany :: String -> Company
+csvLineToCompany =
+  createCompanyParsedCsv . splitCsv . T.pack
+
+parseArgs :: [String] -> CmdArgs
+parseArgs args =
+  CmdArgs (head args) (args !! 1)
+
+main :: IO ()
+main = do
+  args <- getArgs
+  let parsedArgs = parseArgs args
+  inh <- openFile (input_file parsedArgs) ReadMode
+  ouh <- openFile (output_file parsedArgs) WriteMode
+  hSetEncoding inh utf8
+  _ <- hGetLine inh -- Skip first line
+  parseCsvFile inh ouh
+  hFlush ouh
+  hClose inh
+
+parseCsvFile :: Handle -> Handle -> IO ()
+parseCsvFile inh ouh = do
   ineof <- hIsEOF inh
   if ineof
     then return ()
     else do
       inpStr <- hGetLine inh
-      let company_json = B.unpack . encode . createCompany . splitCSV . T.pack $ inpStr
+      let company_json = B.unpack . encode . csvLineToCompany $ inpStr
       hPutStrLn ouh company_json
-      mainLoop inh ouh
+      parseCsvFile inh ouh
