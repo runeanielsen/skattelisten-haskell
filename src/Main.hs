@@ -1,7 +1,7 @@
 module Main where
 
 import Data.Aeson (ToJSON (toJSON), encode, object, (.=))
-import qualified Data.ByteString.Lazy.Char8 as B
+import qualified Data.ByteString.Lazy.UTF8 as B
 import Data.Char (toUpper)
 import qualified Data.Text as T
 import Data.Text.Encoding (decodeUtf8, encodeUtf8)
@@ -94,6 +94,6 @@ parseCsvFile inh ouh = do
     then return ()
     else do
       inpStr <- hGetLine inh
-      let company_json = B.unpack . encode . csvLineToCompany $ inpStr
+      let company_json = B.toString . encode . csvLineToCompany $ inpStr
       hPutStrLn ouh company_json
       parseCsvFile inh ouh
