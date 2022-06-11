@@ -67,9 +67,30 @@ splitCsv :: T.Text -> [T.Text]
 splitCsv =
   T.splitOn $ T.pack ","
 
-csvLineToCompany :: String -> Company
+csvLineToCompany :: T.Text -> Company
 csvLineToCompany =
-  createCompanyParsedCsv . splitCsv . T.pack
+  createCompanyParsedCsv . splitCsv
+
+processCsvBody :: ToJSON a => (T.Text -> a) -> Handle -> Handle -> IO ()
+processCsvBody fn inh ouh = do
+  ineof <- hIsEOF inh
+  if ineof
+    then return ()
+    else do
+      inpStr <- hGetLine inh
+      hPutStrLn ouh (B.toString . encode . fn . T.pack $ inpStr)
+      processCsvBody fn inh ouh
+
+processSkattelisten :: String -> String -> IO ()
+processSkattelisten input_file output_file = do
+  inh <- openFile input_file ReadMode
+  ouh <- openFile output_file WriteMode
+  hSetEncoding inh utf8
+  _ <- hGetLine inh -- Skip CSV header
+  processCsvBody csvLineToCompany inh ouh
+  hFlush ouh
+  hClose inh
+  hClose ouh
 
 parseArgs :: [String] -> CmdArgs
 parseArgs args =
@@ -78,22 +99,5 @@ parseArgs args =
 main :: IO ()
 main = do
   args <- getArgs
-  let parsedArgs = parseArgs args
-  inh <- openFile (input_file parsedArgs) ReadMode
-  ouh <- openFile (output_file parsedArgs) WriteMode
-  hSetEncoding inh utf8
-  _ <- hGetLine inh -- Skip first line
-  parseCsvFile inh ouh
-  hFlush ouh
-  hClose inh
-
-parseCsvFile :: Handle -> Handle -> IO ()
-parseCsvFile inh ouh = do
-  ineof <- hIsEOF inh
-  if ineof
-    then return ()
-    else do
-      inpStr <- hGetLine inh
-      let company_json = B.toString . encode . csvLineToCompany $ inpStr
-      hPutStrLn ouh company_json
-      parseCsvFile inh ouh
+  let cmdArgs = parseArgs args
+  processSkattelisten (input_file cmdArgs) (output_file cmdArgs)
